@@ -29,6 +29,8 @@ cc_library(
   SOURCES
     async_queue.cc
     async_queue.h
+    background_queue.cc
+    background_queue.h
     executor_std.cc
     executor_std.h
     executor.h
@@ -44,6 +46,8 @@ cc_library(
   SOURCES
     async_queue.cc
     async_queue.h
+    background_queue.cc
+    background_queue.h
     executor_libdispatch.mm
     executor_libdispatch.h
     executor.h
