@@ -57,6 +57,9 @@ using OptionalMaybeDocumentMap =
  */
 class DocumentMap {
  public:
+  using key_type = DocumentKey;
+  using mapped_type = Document;
+
   DocumentMap() = default;
 
   ABSL_MUST_USE_RESULT DocumentMap insert(const DocumentKey& key,
