@@ -360,7 +360,7 @@ ByteString MakeResumeToken(NSString *specString) {
     SnapshotVersion version = [self parseVersion:docSpec[@"version"]];
     MaybeDocument doc;
     if (value) {
-      doc = Document(*std::move(value), key, version, DocumentState::kSynced);
+      doc = Document(key, version, DocumentState::kSynced, *std::move(value));
     } else {
       doc = NoDocument(key, version, /* has_committed_mutations= */ false);
     }

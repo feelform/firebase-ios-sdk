@@ -211,8 +211,8 @@ DocumentKey LruGarbageCollectorTest::NextTestDocKey() {
 
 Document LruGarbageCollectorTest::NextTestDocumentWithValue(ObjectValue value) {
   DocumentKey key = NextTestDocKey();
-  return Document(std::move(value), std::move(key), Version(2),
-                  DocumentState::kSynced);
+  return Document(std::move(key), Version(2), DocumentState::kSynced,
+                  std::move(value));
 }
 
 Document LruGarbageCollectorTest::NextTestDocument() {
@@ -607,8 +607,8 @@ TEST_P(LruGarbageCollectorTest, RemoveTargetsThenGC) {
   // Update a doc in the middle target
   persistence_->Run("Update a doc in the middle target", [&] {
     int64_t version = 3;
-    Document doc(ObjectValue(test_value_), middle_doc_to_update,
-                 Version(version), DocumentState::kSynced);
+    Document doc(middle_doc_to_update, Version(version), DocumentState::kSynced,
+                 ObjectValue(test_value_));
     document_cache_->Add(doc, doc.version());
     UpdateTargetInTransaction(middle_target);
   });

@@ -90,8 +90,8 @@ MaybeDocument TransformMutation::Rep::ApplyToRemoteDocument(
 
   ObjectValue new_data = TransformObject(doc.data(), transform_results);
 
-  return Document(std::move(new_data), key(), mutation_result.version(),
-                  DocumentState::kCommittedMutations);
+  return Document(key(), mutation_result.version(),
+                  DocumentState::kCommittedMutations, std::move(new_data));
 }
 
 absl::optional<MaybeDocument> TransformMutation::Rep::ApplyToLocalView(
@@ -114,8 +114,8 @@ absl::optional<MaybeDocument> TransformMutation::Rep::ApplyToLocalView(
       LocalTransformResults(maybe_doc, base_doc, local_write_time);
   ObjectValue new_data = TransformObject(doc.data(), transform_results);
 
-  return Document(std::move(new_data), doc.key(), doc.version(),
-                  DocumentState::kLocalMutations);
+  return Document(doc.key(), doc.version(), DocumentState::kLocalMutations,
+                  std::move(new_data));
 }
 
 absl::optional<ObjectValue> TransformMutation::Rep::ExtractBaseValue(

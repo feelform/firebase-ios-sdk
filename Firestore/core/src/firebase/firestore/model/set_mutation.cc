@@ -65,7 +65,7 @@ MaybeDocument SetMutation::Rep::ApplyToRemoteDocument(
   // the server has accepted the mutation so the precondition must have held.
 
   const SnapshotVersion& version = mutation_result.version();
-  return Document(value_, key(), version, DocumentState::kCommittedMutations);
+  return Document(key(), version, DocumentState::kCommittedMutations, value_);
 }
 
 absl::optional<MaybeDocument> SetMutation::Rep::ApplyToLocalView(
@@ -79,7 +79,7 @@ absl::optional<MaybeDocument> SetMutation::Rep::ApplyToLocalView(
   }
 
   SnapshotVersion version = GetPostMutationVersion(maybe_doc);
-  return Document(value_, key(), version, DocumentState::kLocalMutations);
+  return Document(key(), version, DocumentState::kLocalMutations, value_);
 }
 
 bool SetMutation::Rep::Equals(const Mutation::Rep& other) const {

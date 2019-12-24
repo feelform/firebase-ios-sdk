@@ -39,7 +39,7 @@ TEST(DocumentTest, Constructor) {
   DocumentKey key = Key("messages/first");
   SnapshotVersion version = Version(1001);
   ObjectValue data = WrapObject("a", 1);
-  Document doc(data, key, version, DocumentState::kSynced);
+  Document doc(key, version, DocumentState::kSynced, data);
 
   EXPECT_EQ(MaybeDocument::Type::Document, doc.type());
   EXPECT_EQ(doc.key(), Key("messages/first"));
@@ -48,11 +48,11 @@ TEST(DocumentTest, Constructor) {
   EXPECT_EQ(doc.has_local_mutations(), false);
   EXPECT_EQ(doc.has_pending_writes(), false);
 
-  Document doc2(data, key, version, DocumentState::kLocalMutations);
+  Document doc2(key, version, DocumentState::kLocalMutations, data);
   EXPECT_EQ(doc2.has_local_mutations(), true);
   EXPECT_EQ(doc2.has_pending_writes(), true);
 
-  Document doc3(data, key, version, DocumentState::kCommittedMutations);
+  Document doc3(key, version, DocumentState::kCommittedMutations, data);
   EXPECT_EQ(doc3.has_committed_mutations(), true);
   EXPECT_EQ(doc3.has_pending_writes(), true);
 }

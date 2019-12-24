@@ -285,8 +285,8 @@ inline model::Document Doc(
     int64_t version = 0,
     const model::FieldValue::Map& data = model::FieldValue::Map(),
     model::DocumentState document_state = model::DocumentState::kSynced) {
-  return model::Document(model::ObjectValue::FromMap(data), Key(key),
-                         Version(version), document_state);
+  return model::Document(Key(key), Version(version), document_state,
+                         model::ObjectValue::FromMap(data));
 }
 
 inline model::Document Doc(
@@ -294,8 +294,8 @@ inline model::Document Doc(
     int64_t version,
     const model::FieldValue& data,
     model::DocumentState document_state = model::DocumentState::kSynced) {
-  return model::Document(model::ObjectValue(data), Key(key), Version(version),
-                         document_state);
+  return model::Document(Key(key), Version(version), document_state,
+                         model::ObjectValue(data));
 }
 
 /** A convenience method for creating deleted docs for tests. */

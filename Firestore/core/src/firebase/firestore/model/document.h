@@ -61,20 +61,20 @@ std::ostream& operator<<(std::ostream& os, DocumentState state);
  */
 class Document : public MaybeDocument {
  public:
-  Document(ObjectValue data,
-           DocumentKey key,
+  Document(DocumentKey key,
            SnapshotVersion version,
-           DocumentState document_state);
+           DocumentState document_state,
+           ObjectValue data);
 
  private:
   // TODO(b/146372592): Make this public once we can use Abseil across
   // iOS/public C++ library boundaries.
   friend class remote::Serializer;
 
-  Document(ObjectValue data,
-           DocumentKey key,
+  Document(DocumentKey key,
            SnapshotVersion version,
            DocumentState document_state,
+           ObjectValue data,
            absl::any proto);
 
  public:

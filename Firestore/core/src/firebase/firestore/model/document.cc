@@ -96,18 +96,18 @@ class Document::Rep : public MaybeDocument::Rep {
   absl::any proto_;
 };
 
-Document::Document(ObjectValue data,
-                   DocumentKey key,
+Document::Document(DocumentKey key,
                    SnapshotVersion version,
-                   DocumentState document_state)
+                   DocumentState document_state,
+                   ObjectValue data)
     : MaybeDocument(std::make_shared<Rep>(
           std::move(data), std::move(key), version, document_state)) {
 }
 
-Document::Document(ObjectValue data,
-                   DocumentKey key,
+Document::Document(DocumentKey key,
                    SnapshotVersion version,
                    DocumentState document_state,
+                   ObjectValue data,
                    absl::any proto)
     : MaybeDocument(std::make_shared<Rep>(std::move(data),
                                           std::move(key),

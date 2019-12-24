@@ -74,8 +74,8 @@ MaybeDocument PatchMutation::Rep::ApplyToRemoteDocument(
 
   ObjectValue new_data = PatchDocument(maybe_doc);
   const SnapshotVersion& version = mutation_result.version();
-  return Document(std::move(new_data), key(), version,
-                  DocumentState::kCommittedMutations);
+  return Document(key(), version, DocumentState::kCommittedMutations,
+                  std::move(new_data));
 }
 
 absl::optional<MaybeDocument> PatchMutation::Rep::ApplyToLocalView(
@@ -90,8 +90,8 @@ absl::optional<MaybeDocument> PatchMutation::Rep::ApplyToLocalView(
 
   ObjectValue new_data = PatchDocument(maybe_doc);
   SnapshotVersion version = GetPostMutationVersion(maybe_doc);
-  return Document(std::move(new_data), key(), version,
-                  DocumentState::kLocalMutations);
+  return Document(key(), version, DocumentState::kLocalMutations,
+                  std::move(new_data));
 }
 
 ObjectValue PatchMutation::Rep::PatchDocument(

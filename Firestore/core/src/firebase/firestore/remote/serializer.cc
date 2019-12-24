@@ -545,8 +545,8 @@ Document Serializer::DecodeFoundDocument(
     reader->Fail("Got a document response with no snapshot version");
   }
 
-  return Document(std::move(value), std::move(key), version,
-                  DocumentState::kSynced);
+  return Document(std::move(key), version, DocumentState::kSynced,
+                  std::move(value));
 }
 
 NoDocument Serializer::DecodeMissingDocument(
@@ -1631,7 +1631,7 @@ std::unique_ptr<WatchChange> Serializer::DecodeDocumentChange(
   // would defeat the purpose). Note, however, that even without this
   // optimization C++ implementation is on par with the preceding Objective-C
   // implementation.
-  Document document(std::move(value), key, version, DocumentState::kSynced);
+  Document document(key, version, DocumentState::kSynced, std::move(value));
 
   std::vector<TargetId> updated_target_ids(
       change.target_ids, change.target_ids + change.target_ids_count);

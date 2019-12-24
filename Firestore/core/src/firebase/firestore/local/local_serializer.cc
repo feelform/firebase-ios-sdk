@@ -169,9 +169,8 @@ Document LocalSerializer::DecodeDocument(
   DocumentState state = has_committed_mutations
                             ? DocumentState::kCommittedMutations
                             : DocumentState::kSynced;
-  return Document(std::move(fields),
-                  rpc_serializer_.DecodeKey(reader, proto.name), version,
-                  state);
+  return Document(rpc_serializer_.DecodeKey(reader, proto.name), version, state,
+                  std::move(fields));
 }
 
 firestore_client_NoDocument LocalSerializer::EncodeNoDocument(
