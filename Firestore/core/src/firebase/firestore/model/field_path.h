@@ -117,6 +117,12 @@ class FieldPath : public impl::BasePath<FieldPath>,
   static void ValidateSegments(const SegmentsT& segments);
 };
 
+struct FieldPathHash {
+  size_t operator()(const FieldPath& path) const {
+    return util::Hash(path);
+  }
+};
+
 }  // namespace model
 }  // namespace firestore
 }  // namespace firebase

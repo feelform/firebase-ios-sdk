@@ -18,6 +18,7 @@
 
 #include <ostream>
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 
 #include "Firestore/core/src/firebase/firestore/nanopb/nanopb_util.h"
@@ -27,10 +28,35 @@
 namespace firebase {
 namespace firestore {
 namespace model {
+namespace {
 
 using nanopb::MakeStringView;
 using nanopb::Message;
 using nanopb::StringReader;
+
+const google_firestore_v1_Value* FindTopField(
+    const google_firestore_v1_Document& doc, const std::string& segment) {
+  for (pb_size_t i = 0; i < doc.fields_count; i++) {
+    const auto& entry = doc.fields[i];
+    if (MakeStringView(entry.key) == segment) {
+      return &entry.value;
+    }
+  }
+  return nullptr;
+}
+
+const google_firestore_v1_Value* FindNestedField(
+    const google_firestore_v1_MapValue& map, const std::string& segment) {
+  for (pb_size_t i = 0; i < map.fields_count; i++) {
+    const auto& entry = map.fields[i];
+    if (MakeStringView(entry.key) == segment) {
+      return &entry.value;
+    }
+  }
+  return nullptr;
+}
+
+}  // namespace
 
 static_assert(
     sizeof(MaybeDocument) == sizeof(Document),
@@ -78,6 +104,39 @@ class Document::Rep : public MaybeDocument::Rep {
     return data_.value();
   }
 
+  absl::optional<FieldValue> field(const FieldPath& path) const {
+    if (data_) {
+      return data_.value().Get(path);
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto found = field_value_cache_.find(path);
+    if (found != field_value_cache_.end()) {
+      return found->second;
+    }
+
+    const google_firestore_v1_Value* proto_value =
+        FindTopField(*proto_, path.first_segment());
+    for (size_t i = 1; proto_value != nullptr && i < path.size(); i++) {
+      if (proto_value->which_value_type !=
+          google_firestore_v1_Value_map_value_tag) {
+        return absl::nullopt;
+      }
+
+      proto_value = FindNestedField(proto_value->map_value, path[i]);
+    }
+
+    if (proto_value == nullptr) {
+      return absl::nullopt;
+    }
+
+    StringReader reader(nullptr, 0);
+    FieldValue value = converter_(&reader, *proto_value);
+    field_value_cache_[path] = value;
+
+    return value;
+  }
+
   DocumentState document_state() const {
     return document_state_;
   }
@@ -120,6 +179,10 @@ class Document::Rep : public MaybeDocument::Rep {
   Message<google_firestore_v1_Document> proto_;
   FieldConverter converter_;
   mutable absl::optional<ObjectValue> data_;
+
+  mutable std::mutex mutex_;
+  mutable std::unordered_map<FieldPath, FieldValue, FieldPathHash>
+      field_value_cache_;
 };
 
 Document::Document(DocumentKey key,
@@ -151,7 +214,7 @@ const ObjectValue& Document::data() const {
 }
 
 absl::optional<FieldValue> Document::field(const FieldPath& path) const {
-  return data().Get(path);
+  return doc_rep().field(path);
 }
 
 DocumentState Document::document_state() const {
