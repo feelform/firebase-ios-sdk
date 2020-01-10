@@ -68,7 +68,13 @@ class FieldPath : public impl::BasePath<FieldPath>,
  private:
   // TODO(b/146372592): Make this public once we can use Abseil across
   // iOS/public C++ library boundaries.
+  friend class Document;
   friend class remote::Serializer;
+
+  /**
+   * Creates and returns a new path with a single field. Does not split on dots.
+   */
+  static FieldPath FromSingleSegmentView(absl::string_view segment);
 
   static FieldPath FromDotSeparatedStringView(absl::string_view path);
 

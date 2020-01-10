@@ -76,8 +76,7 @@ class LocalSerializer {
    * equivalent model.
    */
   model::MaybeDocument DecodeMaybeDocument(
-      nanopb::Reader* reader,
-      const firestore_client_MaybeDocument& proto) const;
+      nanopb::Reader* reader, firestore_client_MaybeDocument* proto) const;
 
   /**
    * @brief Encodes a TargetData to the equivalent nanopb proto, representing a
@@ -122,7 +121,7 @@ class LocalSerializer {
   google_firestore_v1_Document EncodeDocument(const model::Document& doc) const;
 
   model::Document DecodeDocument(nanopb::Reader* reader,
-                                 const google_firestore_v1_Document& proto,
+                                 google_firestore_v1_Document* proto,
                                  bool has_committed_mutations) const;
 
   firestore_client_NoDocument EncodeNoDocument(

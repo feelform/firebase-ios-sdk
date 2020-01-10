@@ -91,6 +91,11 @@ inline const pb_field_t* FieldsArray<google_firestore_v1_CommitResponse>() {
 }
 
 template <>
+inline const pb_field_t* FieldsArray<google_firestore_v1_Document>() {
+  return google_firestore_v1_Document_fields;
+}
+
+template <>
 inline const pb_field_t* FieldsArray<google_firestore_v1_ListenRequest>() {
   return google_firestore_v1_ListenRequest_fields;
 }

@@ -128,7 +128,7 @@ class LocalSerializerTest : public ::testing::Test {
     ByteString bytes = ProtobufSerialize(proto);
     StringReader reader(bytes);
     auto message = Message<firestore_client_MaybeDocument>::TryParse(&reader);
-    auto actual_model = serializer.DecodeMaybeDocument(&reader, *message);
+    auto actual_model = serializer.DecodeMaybeDocument(&reader, message.get());
     EXPECT_OK(reader.status());
     EXPECT_EQ(type, actual_model.type());
     EXPECT_EQ(model, actual_model);

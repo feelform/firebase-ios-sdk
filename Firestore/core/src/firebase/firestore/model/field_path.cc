@@ -83,6 +83,11 @@ struct JoinEscaped {
 
 constexpr const char* FieldPath::kDocumentKeyPath;
 
+FieldPath FieldPath::FromSingleSegmentView(absl::string_view segment) {
+  SegmentsT segments = {std::string(segment)};
+  return FieldPath(std::move(segments));
+}
+
 FieldPath FieldPath::FromDotSeparatedString(const std::string& path) {
   return FromDotSeparatedStringView(path);
 }

@@ -20,11 +20,17 @@
 #include <sstream>
 #include <utility>
 
+#include "Firestore/core/src/firebase/firestore/nanopb/nanopb_util.h"
+#include "Firestore/core/src/firebase/firestore/nanopb/reader.h"
 #include "Firestore/core/src/firebase/firestore/util/hard_assert.h"
 
 namespace firebase {
 namespace firestore {
 namespace model {
+
+using nanopb::MakeStringView;
+using nanopb::Message;
+using nanopb::StringReader;
 
 static_assert(
     sizeof(MaybeDocument) == sizeof(Document),
@@ -32,26 +38,44 @@ static_assert(
 
 class Document::Rep : public MaybeDocument::Rep {
  public:
-  Rep(ObjectValue&& data,
-      DocumentKey&& key,
-      SnapshotVersion version,
-      DocumentState document_state)
-      : MaybeDocument::Rep(Type::Document, std::move(key), version),
-        data_(std::move(data)),
-        document_state_(document_state) {
-  }
-
-  Rep(ObjectValue&& data,
-      DocumentKey&& key,
+  Rep(DocumentKey&& key,
       SnapshotVersion version,
       DocumentState document_state,
-      absl::any proto)
-      : Rep(std::move(data), std::move(key), version, document_state) {
-    proto_ = std::move(proto);
+      ObjectValue&& data)
+      : MaybeDocument::Rep(Type::Document, std::move(key), version),
+        document_state_(document_state),
+        data_(std::move(data)) {
+  }
+
+  Rep(DocumentKey&& key,
+      SnapshotVersion version,
+      DocumentState document_state,
+      nanopb::Message<google_firestore_v1_Document> proto,
+      FieldConverter converter)
+      : MaybeDocument::Rep(Type::Document, std::move(key), version),
+        document_state_(document_state),
+        proto_(std::move(proto)),
+        converter_(std::move(converter)) {
   }
 
   const ObjectValue& data() const {
-    return data_;
+    if (!data_.has_value()) {
+      HARD_ASSERT(proto_.get() && converter_,
+                  "Expected proto and converter to be set");
+
+      StringReader reader(nullptr, 0);
+      ObjectValue result;
+      for (pb_size_t i = 0; i < proto_->fields_count; i++) {
+        const auto& entry = proto_->fields[i];
+        FieldPath path =
+            FieldPath::FromSingleSegmentView(MakeStringView(entry.key));
+        FieldValue value = converter_(&reader, entry.value);
+        result = result.Set(path, value);
+      }
+      data_ = std::move(result);
+    }
+
+    return data_.value();
   }
 
   DocumentState document_state() const {
@@ -75,25 +99,27 @@ class Document::Rep : public MaybeDocument::Rep {
 
     const auto& other_rep = static_cast<const Rep&>(other);
     return document_state_ == other_rep.document_state_ &&
-           data_ == other_rep.data_;
+           data() == other_rep.data();
   }
 
   size_t Hash() const override {
-    return util::Hash(MaybeDocument::Rep::Hash(), data_, document_state_);
+    return util::Hash(MaybeDocument::Rep::Hash(), data(), document_state_);
   }
 
   std::string ToString() const override {
-    return absl::StrCat(
-        "Document(key=", key().ToString(), ", version=", version().ToString(),
-        ", document_state=", document_state_, ", data=", data_.ToString(), ")");
+    return absl::StrCat("Document(key=", key().ToString(),
+                        ", version=", version().ToString(),
+                        ", document_state=", document_state_,
+                        ", data=", data().ToString(), ")");
   }
 
  private:
   friend class Document;
 
-  ObjectValue data_;
   DocumentState document_state_;
-  absl::any proto_;
+  Message<google_firestore_v1_Document> proto_;
+  FieldConverter converter_;
+  mutable absl::optional<ObjectValue> data_;
 };
 
 Document::Document(DocumentKey key,
@@ -101,19 +127,19 @@ Document::Document(DocumentKey key,
                    DocumentState document_state,
                    ObjectValue data)
     : MaybeDocument(std::make_shared<Rep>(
-          std::move(data), std::move(key), version, document_state)) {
+          std::move(key), version, document_state, std::move(data))) {
 }
 
 Document::Document(DocumentKey key,
                    SnapshotVersion version,
                    DocumentState document_state,
-                   ObjectValue data,
-                   absl::any proto)
-    : MaybeDocument(std::make_shared<Rep>(std::move(data),
-                                          std::move(key),
+                   nanopb::Message<google_firestore_v1_Document> proto,
+                   FieldConverter converter)
+    : MaybeDocument(std::make_shared<Rep>(std::move(key),
                                           version,
                                           document_state,
-                                          std::move(proto))) {
+                                          std::move(proto),
+                                          std::move(converter))) {
 }
 
 Document::Document(const MaybeDocument& document) : MaybeDocument(document) {
@@ -140,7 +166,7 @@ bool Document::has_committed_mutations() const {
   return doc_rep().has_committed_mutations();
 }
 
-const absl::any& Document::proto() const {
+const Message<google_firestore_v1_Document>& Document::proto() const {
   return doc_rep().proto_;
 }
 

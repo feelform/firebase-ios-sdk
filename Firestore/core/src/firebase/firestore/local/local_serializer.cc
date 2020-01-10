@@ -43,6 +43,7 @@ namespace {
 
 using core::Target;
 using model::Document;
+using model::DocumentKey;
 using model::DocumentState;
 using model::FieldValue;
 using model::MaybeDocument;
@@ -59,6 +60,7 @@ using nanopb::Message;
 using nanopb::Reader;
 using nanopb::SafeReadBoolean;
 using nanopb::Writer;
+using remote::Serializer;
 using util::Status;
 using util::StringFormat;
 
@@ -105,26 +107,26 @@ Message<firestore_client_MaybeDocument> LocalSerializer::EncodeMaybeDocument(
 }
 
 MaybeDocument LocalSerializer::DecodeMaybeDocument(
-    Reader* reader, const firestore_client_MaybeDocument& proto) const {
+    Reader* reader, firestore_client_MaybeDocument* proto) const {
   if (!reader->status().ok()) return {};
 
-  switch (proto.which_document_type) {
+  switch (proto->which_document_type) {
     case firestore_client_MaybeDocument_document_tag:
-      return DecodeDocument(reader, proto.document,
-                            SafeReadBoolean(proto.has_committed_mutations));
+      return DecodeDocument(reader, &proto->document,
+                            SafeReadBoolean(proto->has_committed_mutations));
 
     case firestore_client_MaybeDocument_no_document_tag:
-      return DecodeNoDocument(reader, proto.no_document,
-                              SafeReadBoolean(proto.has_committed_mutations));
+      return DecodeNoDocument(reader, proto->no_document,
+                              SafeReadBoolean(proto->has_committed_mutations));
 
     case firestore_client_MaybeDocument_unknown_document_tag:
-      return DecodeUnknownDocument(reader, proto.unknown_document);
+      return DecodeUnknownDocument(reader, proto->unknown_document);
 
     default:
       reader->Fail(
           StringFormat("Invalid MaybeDocument document type: %s. Expected "
                        "'no_document' (%s) or 'document' (%s)",
-                       proto.which_document_type,
+                       proto->which_document_type,
                        firestore_client_MaybeDocument_no_document_tag,
                        firestore_client_MaybeDocument_document_tag));
       return {};
@@ -157,20 +159,30 @@ google_firestore_v1_Document LocalSerializer::EncodeDocument(
   return result;
 }
 
-Document LocalSerializer::DecodeDocument(
-    Reader* reader,
-    const google_firestore_v1_Document& proto,
-    bool has_committed_mutations) const {
-  ObjectValue fields =
-      rpc_serializer_.DecodeFields(reader, proto.fields_count, proto.fields);
+Document LocalSerializer::DecodeDocument(Reader* reader,
+                                         google_firestore_v1_Document* proto,
+                                         bool has_committed_mutations) const {
+  DocumentKey key = rpc_serializer_.DecodeKey(reader, proto->name);
   SnapshotVersion version =
-      rpc_serializer_.DecodeVersion(reader, proto.update_time);
-
+      rpc_serializer_.DecodeVersion(reader, proto->update_time);
   DocumentState state = has_committed_mutations
                             ? DocumentState::kCommittedMutations
                             : DocumentState::kSynced;
-  return Document(rpc_serializer_.DecodeKey(reader, proto.name), version, state,
-                  std::move(fields));
+
+  Message<google_firestore_v1_Document> owner;
+
+  // Take ownership of the message contents.
+  *owner = *proto;
+  memset(proto, 0, sizeof(*proto));
+
+  const Serializer& serializer = rpc_serializer_;
+  auto converter = [serializer](Reader* reader,
+                                const google_firestore_v1_Value& proto) {
+    return serializer.DecodeFieldValue(reader, proto);
+  };
+
+  return Document(std::move(key), version, state, std::move(owner),
+                  std::move(converter));
 }
 
 firestore_client_NoDocument LocalSerializer::EncodeNoDocument(

@@ -263,7 +263,7 @@ MaybeDocument LevelDbRemoteDocumentCache::DecodeMaybeDocument(
 
   auto message = Message<firestore_client_MaybeDocument>::TryParse(&reader);
   MaybeDocument maybe_document =
-      serializer_->DecodeMaybeDocument(&reader, *message);
+      serializer_->DecodeMaybeDocument(&reader, message.get());
 
   if (!reader.ok()) {
     HARD_FAIL("MaybeDocument proto failed to parse: %s",

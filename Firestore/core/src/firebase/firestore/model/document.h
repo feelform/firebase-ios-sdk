@@ -21,14 +21,20 @@
 #include <memory>
 #include <string>
 
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/firebase/firestore/model/field_path.h"
 #include "Firestore/core/src/firebase/firestore/model/field_value.h"
 #include "Firestore/core/src/firebase/firestore/model/maybe_document.h"
-#include "absl/types/any.h"
+#include "Firestore/core/src/firebase/firestore/nanopb/message.h"
 #include "absl/types/optional.h"
 
 namespace firebase {
 namespace firestore {
+
+namespace local {
+class LocalSerializer;
+}  // namespace local
+
 namespace remote {
 class Serializer;
 }  // namespace remote
@@ -61,6 +67,9 @@ std::ostream& operator<<(std::ostream& os, DocumentState state);
  */
 class Document : public MaybeDocument {
  public:
+  using FieldConverter = std::function<FieldValue(
+      nanopb::Reader* reader, const google_firestore_v1_Value&)>;
+
   Document(DocumentKey key,
            SnapshotVersion version,
            DocumentState document_state,
@@ -69,13 +78,14 @@ class Document : public MaybeDocument {
  private:
   // TODO(b/146372592): Make this public once we can use Abseil across
   // iOS/public C++ library boundaries.
+  friend class local::LocalSerializer;
   friend class remote::Serializer;
 
   Document(DocumentKey key,
            SnapshotVersion version,
            DocumentState document_state,
-           ObjectValue data,
-           absl::any proto);
+           nanopb::Message<google_firestore_v1_Document> proto,
+           FieldConverter converter);
 
  public:
   /**
@@ -97,7 +107,7 @@ class Document : public MaybeDocument {
 
   bool has_committed_mutations() const;
 
-  const absl::any& proto() const;
+  const nanopb::Message<google_firestore_v1_Document>& proto() const;
 
   /** Compares against another Document. */
   friend bool operator==(const Document& lhs, const Document& rhs);
