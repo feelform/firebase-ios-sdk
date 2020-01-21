@@ -17,7 +17,9 @@
 #ifndef FIRESTORE_CORE_SRC_FIREBASE_FIRESTORE_UTIL_BACKGROUND_QUEUE_H_
 #define FIRESTORE_CORE_SRC_FIREBASE_FIRESTORE_UTIL_BACKGROUND_QUEUE_H_
 
-#include <thread>  // NOLINT(build/c++11)
+#include <condition_variable>  // NOLINT(build/c++11)
+#include <functional>
+#include <mutex>  // NOLINT(build/c++11)
 
 namespace firebase {
 namespace firestore {

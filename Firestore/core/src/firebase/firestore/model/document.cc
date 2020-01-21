@@ -16,6 +16,7 @@
 
 #include "Firestore/core/src/firebase/firestore/model/document.h"
 
+#include <mutex>  // NOLINT(build/c++11)
 #include <ostream>
 #include <sstream>
 #include <unordered_map>
